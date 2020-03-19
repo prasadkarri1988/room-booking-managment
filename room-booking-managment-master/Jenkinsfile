@@ -1,0 +1,54 @@
+pipeline {
+    agent any
+    
+    stages {
+        stage("Git clone") {
+            steps {
+                //git clone  
+                deleteDir()
+                echo 'Clone the latest code from the code-base'
+                sh 'git clone https://github.com/prasadkarri1988/room-booking-system.git'       
+            }
+            
+        }
+        stage("Testcases") {
+            steps {
+                //Execute testcases 
+                echo 'Execute test cases'
+                dir("room-booking-managment"){
+                    sh 'mvn clean test' 
+                }               
+            }
+            
+        }
+        stage("Maven Build") {
+            steps {
+                echo 'Execute Maven Build '
+                dir("room-booking-managment"){
+                    sh 'mvn clean package -Dmaven.test.skip=true '
+                }
+            }
+            
+        }
+        stage("Docker Build") {            
+            steps {
+                echo 'Execute Docker Build'
+                dir("room-booking-managment"){
+                    sh "docker build -t room-booking-managment:\"${env.BUILD_NUMBER}\" . "
+                    //sh 'docker push'
+                    echo "Check the Docker image"
+                    sh 'docker images'
+                }
+            }
+            
+        }
+        stage("Deployment") {
+            steps {
+                dir("room-booking-managment"){
+                    sh "docker run -d -p 89:8082 room-booking-managment:\"${env.BUILD_NUMBER}\""
+                }
+            }            
+        }
+      
+    }//end stages
+}
